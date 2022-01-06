@@ -2,7 +2,7 @@
 title: "takeda_case_study"
 author: "Roxy Zhang"
 date: "1/5/2022"
-output: html_document
+output: github_document
 ---
 
 ```{r}
@@ -10,7 +10,12 @@ library(tidyverse)
 library(readxl)
 library(janitor)
 library(exploratory)
+
+theme_set(theme_minimal() + theme(legend.position = "bottom"))
 ```
+
+
+## Look at the trend of nbrx form 07/01/2017 - 06/01/2019
 
 ```{r}
 nbrx_df = read_excel("data/data.xlsx") %>% 
@@ -20,8 +25,21 @@ nbrx_df = read_excel("data/data.xlsx") %>%
     values_to = "nbrx"
   ) %>% 
   janitor::clean_names() %>% 
-  select(hcp_id, date, nbrx, everything())
+  select(hcp_id, date, nbrx, everything()) %>% 
+  mutate(
+    region = as.factor(region),
+    date = as.numeric(date))
 
-as.Date(43282, origin = "1899-12-30") #"2018-07-01"
+# convert the numeric date to readable format
+nbrx_df$date = as.Date(nbrx_df$date, origin = "1899-12-30")
+```
+
+```{r}
+nbrx_df %>% 
+  filter(region %in% c(3, 7)) %>% 
+  group_by(date, region) %>% 
+  summarize(sum_nbrx = sum(nbrx)) %>% 
+  ggplot(aes(x = date, y = sum_nbrx, color = region)) +
+  geom_point()
 ```
 
