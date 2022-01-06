@@ -13,8 +13,15 @@ library(exploratory)
 ```
 
 ```{r}
-df = read_excel("data/data.xlsx", col_names = TRUE)
+nbrx_df = read_excel("data/data.xlsx") %>% 
+  pivot_longer(
+    cols = starts_with("4"),
+    names_to = "date",
+    values_to = "nbrx"
+  ) %>% 
+  janitor::clean_names() %>% 
+  select(hcp_id, date, nbrx, everything())
 
-as.Date(42705, origin = "1899-12-30")
+as.Date(43282, origin = "1899-12-30") #"2018-07-01"
 ```
 
