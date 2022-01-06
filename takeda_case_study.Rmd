@@ -1,0 +1,20 @@
+---
+title: "takeda_case_study"
+author: "Roxy Zhang"
+date: "1/5/2022"
+output: html_document
+---
+
+```{r}
+library(tidyverse)
+library(readxl)
+library(janitor)
+library(exploratory)
+```
+
+```{r}
+df = read_excel("data/data.xlsx", col_names = TRUE)
+
+as.Date(42705, origin = "1899-12-30")
+```
+
