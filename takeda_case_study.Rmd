@@ -36,10 +36,60 @@ nbrx_df$date = as.Date(nbrx_df$date, origin = "1899-12-30")
 
 ```{r}
 nbrx_df %>% 
+  group_by(date, region) %>% 
+  summarize(sum_nbrx = sum(nbrx)) %>% 
+  ggplot(aes(x = date, y = sum_nbrx, color = region)) +
+  geom_point() +
+  labs(
+    title = "Total NBRx by Month",
+    x = "Date",
+    y = "Total NBRx",
+    color = "Region")
+
+nbrx_df %>% 
   filter(region %in% c(3, 7)) %>% 
   group_by(date, region) %>% 
   summarize(sum_nbrx = sum(nbrx)) %>% 
   ggplot(aes(x = date, y = sum_nbrx, color = region)) +
-  geom_point()
+  geom_point()+
+    labs(
+    title = "Total NBRx by Month",
+    x = "Date",
+    y = "Total NBRx",
+    color = "Region")
+
+nbrx_df %>% 
+  filter(region %in% c(1, 2, 4, 5, 6)) %>% 
+  group_by(date, region) %>% 
+  summarize(sum_nbrx = sum(nbrx)) %>% 
+  ggplot(aes(x = date, y = sum_nbrx, color = region)) +
+  geom_point() +
+    labs(
+    title = "Total NBRx by Month",
+    x = "Date",
+    y = "Total NBRx",
+    color = "Region")
+```
+
+```{r}
+kmeans_df = 
+  nbrx_df %>%
+  mutate(date = as.numeric(date)) %>% 
+  filter(region == 3) %>% 
+  group_by(date) %>% 
+  summarize(sum_nbrx = sum(nbrx))
+
+kmeans_fit = 
+  kmeans(x = kmeans_df, centers = 2)
+
+kmeans_df %>% 
+  broom::augment(kmeans_fit, .) %>%
+  ggplot(aes(x = date, y = sum_nbrx, color = .cluster)) +
+  geom_point() +
+      labs(
+    title = "Total NBRx by Month",
+    x = "Date",
+    y = "Total NBRx",
+    color = "Cluster")
 ```
 
