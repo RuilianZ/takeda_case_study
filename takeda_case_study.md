@@ -48,7 +48,7 @@ library(exploratory)
 theme_set(theme_minimal() + theme(legend.position = "bottom"))
 ```
 
-## Look at the trend of nbrx form 07/01/2017 - 06/01/2019
+## Data cleaning
 
 ``` r
 nbrx_df = read_excel("data/data.xlsx") %>% 
@@ -65,7 +65,42 @@ nbrx_df = read_excel("data/data.xlsx") %>%
 
 # convert the numeric date to readable format
 nbrx_df$date = as.Date(nbrx_df$date, origin = "1899-12-30")
+
+
+call_df = read_excel("data/data_1.xlsx") %>% 
+  pivot_longer(
+    cols = starts_with("4"),
+    names_to = "date",
+    values_to = "calls"
+  ) %>% 
+  janitor::clean_names() %>% 
+  select(hcp_id, date, calls, everything()) %>% 
+  mutate(
+    region = as.factor(region),
+    date = as.numeric(date))
+
+call_df$date = as.Date(call_df$date, origin = "1899-12-30")
 ```
+
+## Look at the trend of nbrx form 07/01/2017 - 06/01/2019
+
+``` r
+nbrx_df %>% 
+  group_by(date, region) %>% 
+  summarize(sum_nbrx = sum(nbrx)) %>% 
+  ggplot(aes(x = date, y = sum_nbrx, color = region)) +
+  geom_point() +
+  labs(
+    title = "Total NBRx by Month",
+    x = "Date",
+    y = "Total NBRx",
+    color = "Region") +
+  geom_line()
+```
+
+    ## `summarise()` has grouped output by 'date'. You can override using the `.groups` argument.
+
+![](takeda_case_study_files/figure-gfm/unnamed-chunk-3-1.png)<!-- -->
 
 ``` r
 nbrx_df %>% 
@@ -73,9 +108,99 @@ nbrx_df %>%
   group_by(date, region) %>% 
   summarize(sum_nbrx = sum(nbrx)) %>% 
   ggplot(aes(x = date, y = sum_nbrx, color = region)) +
-  geom_point()
+  geom_point()+
+    labs(
+    title = "Total NBRx by Month",
+    x = "Date",
+    y = "Total NBRx",
+    color = "Region") +
+  geom_line()
 ```
 
     ## `summarise()` has grouped output by 'date'. You can override using the `.groups` argument.
 
-![](takeda_case_study_files/figure-gfm/unnamed-chunk-3-1.png)<!-- -->
+![](takeda_case_study_files/figure-gfm/unnamed-chunk-3-2.png)<!-- -->
+
+``` r
+nbrx_df %>% 
+  filter(region %in% c(1, 2, 4, 5, 6)) %>% 
+  group_by(date, region) %>% 
+  summarize(sum_nbrx = sum(nbrx)) %>% 
+  ggplot(aes(x = date, y = sum_nbrx, color = region)) +
+  geom_point() +
+    labs(
+    title = "Total NBRx by Month",
+    x = "Date",
+    y = "Total NBRx",
+    color = "Region") +
+  geom_line()
+```
+
+    ## `summarise()` has grouped output by 'date'. You can override using the `.groups` argument.
+
+![](takeda_case_study_files/figure-gfm/unnamed-chunk-3-3.png)<!-- -->
+
+## Kmeans clustering for NBRx in region 3 and 7
+
+``` r
+kmeans_df = 
+  nbrx_df %>%
+  mutate(date = as.numeric(date)) %>% 
+  filter(region == 3) %>% 
+  group_by(date) %>% 
+  summarize(sum_nbrx = sum(nbrx))
+
+kmeans_fit = 
+  kmeans(x = kmeans_df, centers = 2)
+
+kmeans_df %>% 
+  broom::augment(kmeans_fit, .) %>%
+  ggplot(aes(x = date, y = sum_nbrx, color = .cluster)) +
+  geom_point() +
+      labs(
+    title = "Total NBRx by Month",
+    x = "Date",
+    y = "Total NBRx",
+    color = "Cluster")
+```
+
+![](takeda_case_study_files/figure-gfm/unnamed-chunk-4-1.png)<!-- -->
+
+## Look at the trend of sals call form 01/01/2018 - 12/01/2018
+
+``` r
+call_df %>% 
+  filter(region %in% c(3, 7)) %>% 
+  group_by(date, region) %>% 
+  summarize(sum_calls = sum(calls)) %>% 
+  ggplot(aes(x = date, y = sum_calls, color = region)) +
+  geom_point()+
+    labs(
+    title = "Total Calls by Month",
+    x = "Date",
+    y = "Total Calls",
+    color = "Region") +
+  geom_line()
+```
+
+    ## `summarise()` has grouped output by 'date'. You can override using the `.groups` argument.
+
+![](takeda_case_study_files/figure-gfm/unnamed-chunk-5-1.png)<!-- -->
+
+``` r
+call_df %>% 
+  group_by(date, region) %>% 
+  summarize(sum_calls = sum(calls)) %>% 
+  ggplot(aes(x = date, y = sum_calls, color = region)) +
+  geom_point()+
+    labs(
+    title = "Total Calls by Month",
+    x = "Date",
+    y = "Total Calls",
+    color = "Region") +
+  geom_line()
+```
+
+    ## `summarise()` has grouped output by 'date'. You can override using the `.groups` argument.
+
+![](takeda_case_study_files/figure-gfm/unnamed-chunk-5-2.png)<!-- -->
