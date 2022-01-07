@@ -45,13 +45,13 @@ library(exploratory)
     ##     read_csv
 
 ``` r
-theme_set(theme_minimal() + theme(legend.position = "bottom"))
+theme_set(theme_minimal() + theme(legend.position = "right", plot.title = element_text(hjust = 0.5)))
 ```
 
 ## Data cleaning
 
 ``` r
-nbrx_df = read_excel("data/data.xlsx") %>% 
+nbrx_df = read_excel("data/nbrx_data.xlsx", sheet = "raw") %>% 
   pivot_longer(
     cols = starts_with("4"),
     names_to = "date",
@@ -67,7 +67,7 @@ nbrx_df = read_excel("data/data.xlsx") %>%
 nbrx_df$date = as.Date(nbrx_df$date, origin = "1899-12-30")
 
 
-call_df = read_excel("data/data_1.xlsx") %>% 
+call_df = read_excel("data/call_data.xlsx", sheet = "raw") %>% 
   pivot_longer(
     cols = starts_with("4"),
     names_to = "date",
@@ -170,15 +170,14 @@ kmeans_df %>%
 
 ``` r
 call_df %>% 
-  filter(region %in% c(3, 7)) %>% 
   group_by(date, region) %>% 
   summarize(sum_calls = sum(calls)) %>% 
   ggplot(aes(x = date, y = sum_calls, color = region)) +
   geom_point()+
     labs(
-    title = "Total Calls by Month",
+    title = "Total Sales Calls by Month",
     x = "Date",
-    y = "Total Calls",
+    y = "Total Sales Calls",
     color = "Region") +
   geom_line()
 ```
@@ -189,14 +188,15 @@ call_df %>%
 
 ``` r
 call_df %>% 
+  filter(region %in% c(3, 7)) %>% 
   group_by(date, region) %>% 
   summarize(sum_calls = sum(calls)) %>% 
   ggplot(aes(x = date, y = sum_calls, color = region)) +
   geom_point()+
     labs(
-    title = "Total Calls by Month",
+    title = "Total Sales Calls by Month",
     x = "Date",
-    y = "Total Calls",
+    y = "Total Sales Calls",
     color = "Region") +
   geom_line()
 ```
@@ -204,3 +204,31 @@ call_df %>%
     ## `summarise()` has grouped output by 'date'. You can override using the `.groups` argument.
 
 ![](takeda_case_study_files/figure-gfm/unnamed-chunk-5-2.png)<!-- -->
+
+``` r
+call_df %>% 
+  group_by(date, region, message_delivered) %>% 
+  summarize(sum_calls = sum(calls)) %>% 
+  ggplot(aes(x = date, y = sum_calls, color = region)) +
+  geom_point()+
+    labs(
+    title = "Total Sales Calls by Month",
+    x = "Date",
+    y = "Total Sales Calls",
+    color = "Region") +
+  geom_line() +
+  facet_wrap( ~ message_delivered)
+```
+
+    ## `summarise()` has grouped output by 'date', 'region'. You can override using the `.groups` argument.
+
+![](takeda_case_study_files/figure-gfm/unnamed-chunk-5-3.png)<!-- -->
+
+## Linear regression
+
+``` r
+lm_data = left_join(nbrx_df, call_df, by = c("hcp_id", "date")) %>% 
+  select(-ends_with(".y"))
+#%>% 
+ # rename
+```
