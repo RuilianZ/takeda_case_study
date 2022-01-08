@@ -54,48 +54,55 @@ call_df$date = as.Date(call_df$date, origin = "1899-12-30")
 
 ```{r}
 nbrx_df %>% 
-  group_by(date, region) %>% 
-  summarize(sum_nbrx = sum(nbrx)) %>% 
-  ggplot(aes(x = date, y = sum_nbrx, color = region)) +
-  geom_point() +
-  labs(
-    title = "Total NBRx by Month",
-    x = "Date",
-    y = "Total NBRx",
-    color = "Region") +
-  geom_line()
-
-nbrx_df %>% 
   filter(region %in% c(3, 7)) %>% 
   group_by(date, region) %>% 
-  summarize(sum_nbrx = sum(nbrx)) %>% 
-  ggplot(aes(x = date, y = sum_nbrx, color = region)) +
+  summarize(mean_nbrx = mean(nbrx)) %>% 
+  ggplot(aes(x = date, y = mean_nbrx, color = region)) +
   geom_point()+
     labs(
-    title = "Total NBRx by Month",
+    title = "Average NBRx by Month",
     x = "Date",
-    y = "Total NBRx",
+    y = "Average NBRx",
     color = "Region") +
   geom_line()
 
 nbrx_df %>% 
-  filter(region %in% c(1, 2, 4, 5, 6)) %>% 
   group_by(date, region) %>% 
-  summarize(sum_nbrx = sum(nbrx)) %>% 
-  ggplot(aes(x = date, y = sum_nbrx, color = region)) +
-  geom_point() +
+  summarize(mean_nbrx = mean(nbrx)) %>% 
+  ggplot(aes(x = date, y = mean_nbrx, color = region)) +
+  geom_point()+
     labs(
-    title = "Total NBRx by Month",
+    title = "Average NBRx by Month",
     x = "Date",
-    y = "Total NBRx",
+    y = "Average NBRx",
     color = "Region") +
   geom_line()
+```
+
+
+# filter out segmented from pilot regions
+
+```{r}
+nbrx_df %>% 
+  filter(region %in% c(3, 7)) %>% 
+  group_by(date, region, message_delivered) %>% 
+  summarize(mean_nbrx = mean(nbrx)) %>% 
+  ggplot(aes(x = date, y = mean_nbrx, color = region)) +
+  geom_point()+
+    labs(
+    title = "Average NBRx by Month",
+    x = "Date",
+    y = "Average NBRx",
+    color = "Region") +
+  geom_line() +
+  facet_wrap( ~ message_delivered)
 ```
 
 
 ## Kmeans clustering for NBRx in region 3 and 7
 
 ```{r}
+# there is a outlier in region 7, so only conduct kmeans on region 3
 kmeans_df = 
   nbrx_df %>%
   mutate(date = as.numeric(date)) %>% 
@@ -107,6 +114,7 @@ kmeans_fit =
   kmeans(x = kmeans_df, centers = 2)
 
 kmeans_df %>% 
+  mutate(date = as.Date(date, origin = "1969-12-30")) %>% 
   broom::augment(kmeans_fit, .) %>%
   ggplot(aes(x = date, y = sum_nbrx, color = .cluster)) +
   geom_point() +

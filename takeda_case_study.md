@@ -86,14 +86,15 @@ call_df$date = as.Date(call_df$date, origin = "1899-12-30")
 
 ``` r
 nbrx_df %>% 
+  filter(region %in% c(3, 7)) %>% 
   group_by(date, region) %>% 
-  summarize(sum_nbrx = sum(nbrx)) %>% 
-  ggplot(aes(x = date, y = sum_nbrx, color = region)) +
-  geom_point() +
-  labs(
-    title = "Total NBRx by Month",
+  summarize(mean_nbrx = mean(nbrx)) %>% 
+  ggplot(aes(x = date, y = mean_nbrx, color = region)) +
+  geom_point()+
+    labs(
+    title = "Average NBRx by Month",
     x = "Date",
-    y = "Total NBRx",
+    y = "Average NBRx",
     color = "Region") +
   geom_line()
 ```
@@ -104,15 +105,14 @@ nbrx_df %>%
 
 ``` r
 nbrx_df %>% 
-  filter(region %in% c(3, 7)) %>% 
   group_by(date, region) %>% 
-  summarize(sum_nbrx = sum(nbrx)) %>% 
-  ggplot(aes(x = date, y = sum_nbrx, color = region)) +
+  summarize(mean_nbrx = mean(nbrx)) %>% 
+  ggplot(aes(x = date, y = mean_nbrx, color = region)) +
   geom_point()+
     labs(
-    title = "Total NBRx by Month",
+    title = "Average NBRx by Month",
     x = "Date",
-    y = "Total NBRx",
+    y = "Average NBRx",
     color = "Region") +
   geom_line()
 ```
@@ -121,28 +121,32 @@ nbrx_df %>%
 
 ![](takeda_case_study_files/figure-gfm/unnamed-chunk-3-2.png)<!-- -->
 
+# filter out segmented from pilot regions
+
 ``` r
 nbrx_df %>% 
-  filter(region %in% c(1, 2, 4, 5, 6)) %>% 
-  group_by(date, region) %>% 
-  summarize(sum_nbrx = sum(nbrx)) %>% 
-  ggplot(aes(x = date, y = sum_nbrx, color = region)) +
-  geom_point() +
+  filter(region %in% c(3, 7)) %>% 
+  group_by(date, region, message_delivered) %>% 
+  summarize(mean_nbrx = mean(nbrx)) %>% 
+  ggplot(aes(x = date, y = mean_nbrx, color = region)) +
+  geom_point()+
     labs(
-    title = "Total NBRx by Month",
+    title = "Average NBRx by Month",
     x = "Date",
-    y = "Total NBRx",
+    y = "Average NBRx",
     color = "Region") +
-  geom_line()
+  geom_line() +
+  facet_wrap( ~ message_delivered)
 ```
 
-    ## `summarise()` has grouped output by 'date'. You can override using the `.groups` argument.
+    ## `summarise()` has grouped output by 'date', 'region'. You can override using the `.groups` argument.
 
-![](takeda_case_study_files/figure-gfm/unnamed-chunk-3-3.png)<!-- -->
+![](takeda_case_study_files/figure-gfm/unnamed-chunk-4-1.png)<!-- -->
 
 ## Kmeans clustering for NBRx in region 3 and 7
 
 ``` r
+# there is a outlier in region 7, so only conduct kmeans on region 3
 kmeans_df = 
   nbrx_df %>%
   mutate(date = as.numeric(date)) %>% 
@@ -154,6 +158,7 @@ kmeans_fit =
   kmeans(x = kmeans_df, centers = 2)
 
 kmeans_df %>% 
+  mutate(date = as.Date(date, origin = "1969-12-30")) %>% 
   broom::augment(kmeans_fit, .) %>%
   ggplot(aes(x = date, y = sum_nbrx, color = .cluster)) +
   geom_point() +
@@ -164,7 +169,7 @@ kmeans_df %>%
     color = "Cluster")
 ```
 
-![](takeda_case_study_files/figure-gfm/unnamed-chunk-4-1.png)<!-- -->
+![](takeda_case_study_files/figure-gfm/unnamed-chunk-5-1.png)<!-- -->
 
 ## Look at the trend of sals call form 01/01/2018 - 12/01/2018
 
@@ -184,7 +189,7 @@ call_df %>%
 
     ## `summarise()` has grouped output by 'date'. You can override using the `.groups` argument.
 
-![](takeda_case_study_files/figure-gfm/unnamed-chunk-5-1.png)<!-- -->
+![](takeda_case_study_files/figure-gfm/unnamed-chunk-6-1.png)<!-- -->
 
 ``` r
 call_df %>% 
@@ -203,7 +208,7 @@ call_df %>%
 
     ## `summarise()` has grouped output by 'date'. You can override using the `.groups` argument.
 
-![](takeda_case_study_files/figure-gfm/unnamed-chunk-5-2.png)<!-- -->
+![](takeda_case_study_files/figure-gfm/unnamed-chunk-6-2.png)<!-- -->
 
 ``` r
 call_df %>% 
@@ -222,13 +227,46 @@ call_df %>%
 
     ## `summarise()` has grouped output by 'date', 'region'. You can override using the `.groups` argument.
 
-![](takeda_case_study_files/figure-gfm/unnamed-chunk-5-3.png)<!-- -->
+![](takeda_case_study_files/figure-gfm/unnamed-chunk-6-3.png)<!-- -->
 
 ## Linear regression
 
 ``` r
 lm_data = left_join(nbrx_df, call_df, by = c("hcp_id", "date")) %>% 
-  select(-ends_with(".y"))
-#%>% 
- # rename
+  select(-ends_with(".y")) %>% 
+  rename(
+    region = region.x,
+    segment = segment.x,
+    message_delivered = message_delivered.x) %>% 
+  select(hcp_id, date, nbrx, calls, everything()) %>% 
+  drop_na() %>% 
+  filter(message_delivered == "Segmented")
 ```
+
+``` r
+fit = lm(nbrx ~ calls, data = lm_data)
+
+broom::tidy(fit)
+```
+
+    ## # A tibble: 2 × 5
+    ##   term        estimate std.error statistic  p.value
+    ##   <chr>          <dbl>     <dbl>     <dbl>    <dbl>
+    ## 1 (Intercept)  3.08        0.794    3.88   0.000106
+    ## 2 calls        0.00637     0.340    0.0187 0.985
+
+``` r
+broom::glance(fit)
+```
+
+    ## # A tibble: 1 × 12
+    ##      r.squared adj.r.squared sigma statistic p.value    df  logLik    AIC    BIC
+    ##          <dbl>         <dbl> <dbl>     <dbl>   <dbl> <dbl>   <dbl>  <dbl>  <dbl>
+    ## 1 0.0000000302    -0.0000861  46.4  0.000351   0.985     1 -61057. 1.22e5 1.22e5
+    ## # … with 3 more variables: deviance <dbl>, df.residual <int>, nobs <int>
+
+``` r
+plot(fit)
+```
+
+![](takeda_case_study_files/figure-gfm/unnamed-chunk-8-1.png)<!-- -->![](takeda_case_study_files/figure-gfm/unnamed-chunk-8-2.png)<!-- -->![](takeda_case_study_files/figure-gfm/unnamed-chunk-8-3.png)<!-- -->![](takeda_case_study_files/figure-gfm/unnamed-chunk-8-4.png)<!-- -->
