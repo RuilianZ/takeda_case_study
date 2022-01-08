@@ -136,7 +136,8 @@ nbrx_df %>%
     y = "Average NBRx",
     color = "Region") +
   geom_line() +
-  facet_wrap( ~ message_delivered)
+  facet_wrap( ~ message_delivered) +
+  theme(panel.spacing = unit(2, "lines"))
 ```
 
     ## `summarise()` has grouped output by 'date', 'region'. You can override using the `.groups` argument.
