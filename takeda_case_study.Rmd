@@ -165,8 +165,23 @@ call_df %>%
 
 ```{r}
 lm_data = left_join(nbrx_df, call_df, by = c("hcp_id", "date")) %>% 
-  select(-ends_with(".y"))
-#%>% 
- # rename
+  select(-ends_with(".y")) %>% 
+  rename(
+    region = region.x,
+    segment = segment.x,
+    message_delivered = message_delivered.x) %>% 
+  select(hcp_id, date, nbrx, calls, everything()) %>% 
+  drop_na() %>% 
+  filter(message_delivered == "Segmented")
+```
+
+```{r}
+fit = lm(nbrx ~ calls, data = lm_data)
+
+broom::tidy(fit)
+
+broom::glance(fit)
+
+plot(fit)
 ```
 
