@@ -271,3 +271,132 @@ plot(fit)
 ```
 
 ![](takeda_case_study_files/figure-gfm/unnamed-chunk-8-1.png)<!-- -->![](takeda_case_study_files/figure-gfm/unnamed-chunk-8-2.png)<!-- -->![](takeda_case_study_files/figure-gfm/unnamed-chunk-8-3.png)<!-- -->![](takeda_case_study_files/figure-gfm/unnamed-chunk-8-4.png)<!-- -->
+
+## Hypothesis test
+
+``` r
+# patient advocate: segmented vs standard across all regions
+pa_segmented = 
+  nbrx_df %>% 
+  mutate(date = as.numeric(date)) %>% 
+  filter(
+    date >= 17713, # filter data after 2018-07-01
+    date <= 17866, # filter data before 2018-12-01
+    segment == "Patient Advocate",
+    message_delivered == "Segmented" ) %>% 
+  select(nbrx)
+
+pa_standard = 
+  nbrx_df %>% 
+  mutate(date = as.numeric(date)) %>% 
+  filter(
+    date >= 17713,
+    date <= 17866,
+    segment == "Patient Advocate",
+    message_delivered == "Standard" ) %>% 
+  select(nbrx)
+
+t.test(pa_segmented, pa_standard) # not ignificant
+```
+
+    ## 
+    ##  Welch Two Sample t-test
+    ## 
+    ## data:  pa_segmented and pa_standard
+    ## t = 1.2629, df = 5810.5, p-value = 0.2067
+    ## alternative hypothesis: true difference in means is not equal to 0
+    ## 95 percent confidence interval:
+    ##  -0.6004528  2.7749103
+    ## sample estimates:
+    ## mean of x mean of y 
+    ##  3.664773  2.577544
+
+``` r
+qt(0.975, 5810.5)
+```
+
+    ## [1] 1.960372
+
+``` r
+# segmented vs standard in pilot regions
+pilot_segmented = 
+  nbrx_df %>% 
+  mutate(date = as.numeric(date)) %>% 
+  filter(
+    date >= 17713, # filter data after 2018-07-01
+    date <= 17866, # filter data before 2018-12-01
+    region %in% c(3, 7),
+    message_delivered == "Segmented" ) %>% 
+  select(nbrx)
+
+pilot_standard = 
+  nbrx_df %>% 
+  mutate(date = as.numeric(date)) %>% 
+  filter(
+    date >= 17713,
+    date <= 17866,
+    region %in% c(3, 7),
+    message_delivered == "Standard" ) %>% 
+  select(nbrx)
+
+t.test(pilot_segmented, pilot_standard) # not significant
+```
+
+    ## 
+    ##  Welch Two Sample t-test
+    ## 
+    ## data:  pilot_segmented and pilot_standard
+    ## t = 1.1597, df = 5812.8, p-value = 0.2462
+    ## alternative hypothesis: true difference in means is not equal to 0
+    ## 95 percent confidence interval:
+    ##  -0.6893328  2.6863692
+    ## sample estimates:
+    ## mean of x mean of y 
+    ##  3.664773  2.666255
+
+``` r
+qt(0.975, 5812)
+```
+
+    ## [1] 1.960372
+
+``` r
+# sales calls
+pa_segmented_calls = 
+  call_df %>% 
+  filter(
+    date >= 17713,
+    date <= 17866,
+    segment == "Patient Advocate",
+    message_delivered == "Segmented" ) %>% 
+  select(calls)
+
+pa_standard_calls = 
+  call_df %>% 
+  filter(
+    date >= 17713,
+    date <= 17866,
+    segment == "Patient Advocate",
+    message_delivered == "Standard" ) %>% 
+  select(calls)
+
+t.test(pa_segmented_calls, pa_standard_calls) # significant
+```
+
+    ## 
+    ##  Welch Two Sample t-test
+    ## 
+    ## data:  pa_segmented_calls and pa_standard_calls
+    ## t = 13.43, df = 11361, p-value < 2.2e-16
+    ## alternative hypothesis: true difference in means is not equal to 0
+    ## 95 percent confidence interval:
+    ##  0.2187124 0.2934693
+    ## sample estimates:
+    ## mean of x mean of y 
+    ##  2.163395  1.907304
+
+``` r
+qt(0.975, 11361)
+```
+
+    ## [1] 1.960173

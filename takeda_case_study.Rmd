@@ -194,3 +194,83 @@ broom::glance(fit)
 plot(fit)
 ```
 
+
+## Hypothesis test
+
+```{r}
+# patient advocate: segmented vs standard across all regions
+pa_segmented = 
+  nbrx_df %>% 
+  mutate(date = as.numeric(date)) %>% 
+  filter(
+    date >= 17713, # filter data after 2018-07-01
+    date <= 17866, # filter data before 2018-12-01
+    segment == "Patient Advocate",
+    message_delivered == "Segmented" ) %>% 
+  select(nbrx)
+
+pa_standard = 
+  nbrx_df %>% 
+  mutate(date = as.numeric(date)) %>% 
+  filter(
+    date >= 17713,
+    date <= 17866,
+    segment == "Patient Advocate",
+    message_delivered == "Standard" ) %>% 
+  select(nbrx)
+
+t.test(pa_segmented, pa_standard) # not ignificant
+
+qt(0.975, 5810.5)
+
+# segmented vs standard in pilot regions
+pilot_segmented = 
+  nbrx_df %>% 
+  mutate(date = as.numeric(date)) %>% 
+  filter(
+    date >= 17713, # filter data after 2018-07-01
+    date <= 17866, # filter data before 2018-12-01
+    region %in% c(3, 7),
+    message_delivered == "Segmented" ) %>% 
+  select(nbrx)
+
+pilot_standard = 
+  nbrx_df %>% 
+  mutate(date = as.numeric(date)) %>% 
+  filter(
+    date >= 17713,
+    date <= 17866,
+    region %in% c(3, 7),
+    message_delivered == "Standard" ) %>% 
+  select(nbrx)
+
+t.test(pilot_segmented, pilot_standard) # not significant
+
+qt(0.975, 5812)
+```
+
+```{r}
+# sales calls
+pa_segmented_calls = 
+  call_df %>% 
+  filter(
+    date >= 17713,
+    date <= 17866,
+    segment == "Patient Advocate",
+    message_delivered == "Segmented" ) %>% 
+  select(calls)
+
+pa_standard_calls = 
+  call_df %>% 
+  filter(
+    date >= 17713,
+    date <= 17866,
+    segment == "Patient Advocate",
+    message_delivered == "Standard" ) %>% 
+  select(calls)
+
+t.test(pa_segmented_calls, pa_standard_calls) # significant
+
+qt(0.975, 11361)
+```
+
