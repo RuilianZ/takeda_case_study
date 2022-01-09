@@ -296,7 +296,7 @@ pa_standard =
     message_delivered == "Standard" ) %>% 
   select(nbrx)
 
-t.test(pa_segmented, pa_standard) # not ignificant
+t.test(pa_segmented, pa_standard) # not significant
 ```
 
     ## 
@@ -400,3 +400,26 @@ qt(0.975, 11361)
 ```
 
     ## [1] 1.960173
+
+# Look at distribution of nbrx - boxplot
+
+``` r
+nbrx_df %>% 
+  mutate(date = as.numeric(date)) %>% 
+  filter(
+    nbrx != 5000,
+    date >= 17713, # filter data after 2018-07-01
+    date <= 17866) %>%  # filter data before 2018-12-01
+  ggplot(aes(y = nbrx)) +
+  geom_boxplot(aes(group = segment, fill = segment), alpha = .5) +
+  facet_grid(segment ~ message_delivered) +
+  labs(
+    title = "Distribution of NBRx",
+    y = "NBRx"
+  ) +
+  theme(
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank())
+```
+
+![](takeda_case_study_files/figure-gfm/unnamed-chunk-11-1.png)<!-- -->
