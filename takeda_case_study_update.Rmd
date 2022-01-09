@@ -247,7 +247,7 @@ pa_standard =
     message_delivered == "Standard" ) %>% 
   select(nbrx)
 
-t.test(pa_segmented, pa_standard) # not significant
+t.test(pa_segmented, pa_standard) # significant
 
 qt(0.975, 5810.5)
 
@@ -272,7 +272,7 @@ pilot_standard =
     message_delivered == "Standard" ) %>% 
   select(nbrx)
 
-t.test(pilot_segmented, pilot_standard) # not significant
+t.test(pilot_segmented, pilot_standard) # significant
 
 qt(0.975, 5812)
 ```
