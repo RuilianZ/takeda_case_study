@@ -1,0 +1,305 @@
+---
+title: "takeda_case_study_without_outlier"
+author: "Roxy Zhang"
+date: "1/9/2022"
+output: github_document
+---
+
+```{r}
+library(tidyverse)
+library(readxl)
+library(janitor)
+library(exploratory)
+
+theme_set(theme_minimal() + theme(legend.position = "right", plot.title = element_text(hjust = 0.5)))
+```
+
+
+## Data cleaning & remove outlier
+
+```{r}
+nbrx_df = read_excel("data/nbrx_data.xlsx", sheet = "raw") %>% 
+  pivot_longer(
+    cols = starts_with("4"),
+    names_to = "date",
+    values_to = "nbrx"
+  ) %>% 
+  janitor::clean_names() %>% 
+  select(hcp_id, date, nbrx, everything()) %>% 
+  mutate(
+    region = as.factor(region),
+    date = as.numeric(date))
+
+filter(nbrx_df, nbrx >= 1000) # find outlier
+
+nbrx_df = 
+  nbrx_df %>% 
+  filter(nbrx != 5000) # update dataset
+
+# convert the numeric date to readable format
+nbrx_df$date = as.Date(nbrx_df$date, origin = "1899-12-30")
+
+
+call_df = read_excel("data/call_data.xlsx", sheet = "raw") %>% 
+  pivot_longer(
+    cols = starts_with("4"),
+    names_to = "date",
+    values_to = "calls"
+  ) %>% 
+  janitor::clean_names() %>% 
+  select(hcp_id, date, calls, everything()) %>% 
+  mutate(
+    region = as.factor(region),
+    date = as.numeric(date))
+
+call_df$date = as.Date(call_df$date, origin = "1899-12-30")
+```
+
+
+# Look at distribution of nbrx
+
+```{r}
+nbrx_df %>% 
+  mutate(date = as.numeric(date)) %>% 
+  filter(
+    date >= 17713, # filter data after 2018-07-01
+    date <= 17866) %>%  # filter data before 2018-12-01
+  ggplot(aes(y = nbrx)) +
+  geom_boxplot(aes(group = segment, fill = segment), alpha = .5) +
+  facet_grid(segment ~ message_delivered) +
+  labs(
+    title = "Distribution of NBRx in During Initiave",
+    y = "NBRx"
+  ) +
+  theme(
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank())
+```
+
+
+## Look at the trend of nbrx form 07/01/2017 - 06/01/2019
+
+```{r}
+nbrx_df %>% 
+  filter(region %in% c(3, 7)) %>% 
+  group_by(date, region) %>% 
+  summarize(mean_nbrx = mean(nbrx)) %>% 
+  ggplot(aes(x = date, y = mean_nbrx, color = region)) +
+  geom_point()+
+    labs(
+    title = "Average NBRx by Month",
+    x = "Date",
+    y = "Average NBRx",
+    color = "Region") +
+  geom_line()
+
+nbrx_df %>% 
+  group_by(date, region) %>% 
+  summarize(mean_nbrx = mean(nbrx)) %>% 
+  ggplot(aes(x = date, y = mean_nbrx, color = region)) +
+  geom_point()+
+    labs(
+    title = "Average NBRx by Month",
+    x = "Date",
+    y = "Average NBRx",
+    color = "Region") +
+  geom_line()
+```
+
+
+# filter out segmented from pilot regions
+
+```{r}
+nbrx_df %>% 
+  filter(region %in% c(3, 7)) %>% 
+  group_by(date, region, message_delivered) %>% 
+  summarize(mean_nbrx = mean(nbrx)) %>% 
+  ggplot(aes(x = date, y = mean_nbrx, color = region)) +
+  geom_point()+
+    labs(
+    title = "Average NBRx by Month",
+    x = "Date",
+    y = "Average NBRx",
+    color = "Region") +
+  geom_line() +
+  facet_wrap( ~ message_delivered) +
+  theme(panel.spacing = unit(2, "lines"))
+```
+
+
+## Kmeans clustering for NBRx in region 3 and 7
+
+```{r}
+# there is a outlier in region 7, so only conduct kmeans on region 3
+kmeans_df = 
+  nbrx_df %>%
+  mutate(date = as.numeric(date)) %>% 
+  filter(region == 3) %>% 
+  group_by(date) %>% 
+  summarize(sum_nbrx = sum(nbrx))
+
+kmeans_fit = 
+  kmeans(x = kmeans_df, centers = 2)
+
+kmeans_df %>% 
+  mutate(date = as.Date(date, origin = "1969-12-30")) %>% 
+  broom::augment(kmeans_fit, .) %>%
+  ggplot(aes(x = date, y = sum_nbrx, color = .cluster)) +
+  geom_point() +
+      labs(
+    title = "Total NBRx by Month",
+    x = "Date",
+    y = "Total NBRx",
+    color = "Cluster")
+```
+
+
+
+## Look at the trend of sals call form 01/01/2018 - 12/01/2018
+
+```{r}
+call_df %>% 
+  group_by(date, region) %>% 
+  summarize(sum_calls = sum(calls)) %>% 
+  ggplot(aes(x = date, y = sum_calls, color = region)) +
+  geom_point()+
+    labs(
+    title = "Total Sales Calls by Month",
+    x = "Date",
+    y = "Total Sales Calls",
+    color = "Region") +
+  geom_line()
+
+call_df %>% 
+  filter(region %in% c(3, 7)) %>% 
+  group_by(date, region) %>% 
+  summarize(sum_calls = sum(calls)) %>% 
+  ggplot(aes(x = date, y = sum_calls, color = region)) +
+  geom_point()+
+    labs(
+    title = "Total Sales Calls by Month",
+    x = "Date",
+    y = "Total Sales Calls",
+    color = "Region") +
+  geom_line()
+
+call_df %>% 
+  group_by(date, region, message_delivered) %>% 
+  summarize(sum_calls = sum(calls)) %>% 
+  ggplot(aes(x = date, y = sum_calls, color = region)) +
+  geom_point()+
+    labs(
+    title = "Total Sales Calls by Month",
+    x = "Date",
+    y = "Total Sales Calls",
+    color = "Region") +
+  geom_line() +
+  facet_wrap( ~ message_delivered)
+```
+
+
+## Linear regression
+
+```{r}
+lm_data = left_join(nbrx_df, call_df, by = c("hcp_id", "date")) %>% 
+  select(-ends_with(".y")) %>% 
+  rename(
+    region = region.x,
+    segment = segment.x,
+    message_delivered = message_delivered.x) %>% 
+  select(hcp_id, date, nbrx, calls, everything()) %>% 
+  drop_na() %>% 
+  filter(message_delivered == "Segmented")
+```
+
+```{r}
+fit = lm(nbrx ~ calls, data = lm_data)
+
+broom::tidy(fit)
+
+broom::glance(fit)
+
+plot(fit)
+```
+
+
+## Hypothesis test
+
+```{r}
+# patient advocate: segmented vs standard across all regions
+pa_segmented = 
+  nbrx_df %>% 
+  mutate(date = as.numeric(date)) %>% 
+  filter(
+    date >= 17713, # filter data after 2018-07-01
+    date <= 17866, # filter data before 2018-12-01
+    segment == "Patient Advocate",
+    message_delivered == "Segmented" ) %>% 
+  select(nbrx)
+
+pa_standard = 
+  nbrx_df %>% 
+  mutate(date = as.numeric(date)) %>% 
+  filter(
+    date >= 17713,
+    date <= 17866,
+    segment == "Patient Advocate",
+    message_delivered == "Standard" ) %>% 
+  select(nbrx)
+
+t.test(pa_segmented, pa_standard) # not significant
+
+qt(0.975, 5810.5)
+
+# segmented vs standard in pilot regions
+pilot_segmented = 
+  nbrx_df %>% 
+  mutate(date = as.numeric(date)) %>% 
+  filter(
+    date >= 17713, # filter data after 2018-07-01
+    date <= 17866, # filter data before 2018-12-01
+    region %in% c(3, 7),
+    message_delivered == "Segmented" ) %>% 
+  select(nbrx)
+
+pilot_standard = 
+  nbrx_df %>% 
+  mutate(date = as.numeric(date)) %>% 
+  filter(
+    date >= 17713,
+    date <= 17866,
+    region %in% c(3, 7),
+    message_delivered == "Standard" ) %>% 
+  select(nbrx)
+
+t.test(pilot_segmented, pilot_standard) # not significant
+
+qt(0.975, 5812)
+```
+
+```{r}
+# sales calls
+pa_segmented_calls = 
+  call_df %>% 
+  filter(
+    date >= 17713,
+    date <= 17866,
+    segment == "Patient Advocate",
+    message_delivered == "Segmented" ) %>% 
+  select(calls)
+
+pa_standard_calls = 
+  call_df %>% 
+  filter(
+    date >= 17713,
+    date <= 17866,
+    segment == "Patient Advocate",
+    message_delivered == "Standard" ) %>% 
+  select(calls)
+
+t.test(pa_segmented_calls, pa_standard_calls) # significant
+
+qt(0.975, 11361)
+```
+
+
